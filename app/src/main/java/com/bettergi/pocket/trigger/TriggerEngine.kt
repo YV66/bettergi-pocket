@@ -60,7 +60,7 @@ class TriggerEngine(
                 return
             }
 
-            val enabled = features.filter { it.isEnabled(settings) }
+            val enabled = features.filter { it.isEnabled(settings) } // filter { ... } 筛选true 的元素，返回一个新列表
             val needFrame = enabled.any { it.needsFrame(settings) }
 
             if (enabled.isEmpty()) {

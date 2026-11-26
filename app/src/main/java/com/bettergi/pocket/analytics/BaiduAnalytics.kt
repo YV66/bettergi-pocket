@@ -2,7 +2,7 @@ package com.bettergi.pocket.analytics
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import com.baidu.mobstat.StatService
+import com.baidu.mobstat.StatService //百度移动统计 SDK（Baidu Mobstat）
 import com.bettergi.pocket.R
 
 /** 仅由主进程的 Application 准备配置，不在 Application 中触发启动统计。 */
@@ -22,7 +22,7 @@ object BaiduAnalytics {
         session = AnalyticsSession(
             configured = isConfigured,
             backend = object : AnalyticsBackend {
-                override fun start() {
+                override fun start() { //调StatService
                     // 未配置 AppKey 时不会调用 SDK，只配置了 AppKey 才初始化并启动统计。
                     StatService.setAuthorizedState(appContext, true)
                     StatService.browseMode(false)

@@ -194,16 +194,18 @@ class OverlayWindowController(
     fun show() {
         if (rootView != null || !Settings.canDrawOverlays(context)) return
         themedContext = OverlayUi.context(context)
-        overlayDensity = context.resources.configuration.densityDpi
-        overlayFontScale = context.resources.configuration.fontScale.coerceAtMost(1.3f)
-        val root = LayoutInflater.from(themedContext).inflate(R.layout.overlay_window, null)
+        //原始 Context，因为要记录的是设备真实参数
+        overlayDensity = context.resources.configuration.densityDpi//屏幕密度（每英寸像素数），用于后续把 dp 换算成 px、按密度调整悬浮窗尺寸
+        overlayFontScale = context.resources.configuration.fontScale.coerceAtMost(1.3f)//字体缩放比例
+        //LayoutInflater.from(themedContext)：用定制 Context 创建 inflater，这样 inflate 出来的 View 会应用 Overlay 主题（颜色、样式）和受控字体缩放。
+        val root = LayoutInflater.from(themedContext).inflate(R.layout.overlay_window, null)//null 表示不挂到父容器，只生成 View 对象
         bubbleView = root.findViewById(R.id.overlay_bubble)
         panelView = root.findViewById(R.id.overlay_panel)
         statusDot = root.findViewById(R.id.overlay_status_dot)
         statusText = root.findViewById<TextView>(R.id.overlay_status_text).also { text ->
             text.setOnClickListener {
                 if (InputAccessibilityService.health(themedContext) != AccessibilityServiceHealth.State.CONNECTED)
-                    InputAccessibilityService.ensureEnabled(themedContext)
+                    InputAccessibilityService.ensureEnabled(themedContext) //引导用户去系统设置里开启无障碍服务
                 else if (routeRunning || readoutRunning) expandStatusBar()
             }
         }
@@ -217,31 +219,33 @@ class OverlayWindowController(
         logToggleButton = root.findViewById(R.id.overlay_log_toggle)
         rowAutoSkip = root.findViewById(R.id.overlay_row_auto_skip)
         rowAutoPick = root.findViewById<View>(R.id.overlay_row_auto_pick).also {
-            it.visibility = if (AutoPickFeature.AVAILABLE) View.VISIBLE else View.GONE
-            if (!AutoPickFeature.AVAILABLE) settingsRepository.setAutoPickEnabled(false)
+            it.visibility = if (AutoPickFeature.AVAILABLE) View.VISIBLE else View.GONE  // View.GONE：隐藏，且不占布局空间
+            if (!AutoPickFeature.AVAILABLE) settingsRepository.setAutoPickEnabled(false)//强制关闭
         }
         rowLaunch = root.findViewById(R.id.overlay_row_launch)
         pathingRow = root.findViewById(R.id.overlay_row_pathing)
-        pathingStatus = root.findViewById<TextView>(R.id.overlay_pathing_status).apply { text = pathingSummary }
+        pathingStatus = root.findViewById<TextView>(R.id.overlay_pathing_status).apply { text = pathingSummary }//和.also的区别：可以直接写成员名
         pathingStart = root.findViewById(R.id.overlay_pathing_start)
         if (!BuildConfig.PATHING_ENABLED || Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             root.findViewById<View>(R.id.overlay_group_pathing).visibility = View.GONE
+        //悬浮窗的大小、类型、行为标志、位置等
         val lp = WindowManager.LayoutParams(-2, -2, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, PixelFormat.TRANSLUCENT).apply {
-            gravity = Gravity.TOP or Gravity.START; x = prefs.getInt(KEY_X, 0); y = prefs.getInt(KEY_Y, dp(120))
-            if (Build.VERSION.SDK_INT >= 30) setFitInsetsTypes(0)
-            if (Build.VERSION.SDK_INT >= 28) layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            gravity = Gravity.TOP or Gravity.START; x = prefs.getInt(KEY_X, 0); y = prefs.getInt(KEY_Y, dp(120))//窗口定位基准：左上角。配合下面的 x、y 就是相对屏幕左上角的偏移//拖动后位置会存进 prefs，下次启动恢复
+            if (Build.VERSION.SDK_INT >= 30) setFitInsetsTypes(0)//API 30+：不适配 insets
+            if (Build.VERSION.SDK_INT >= 28) layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES // API 28+：允许布局到刘海区域
         }
-        setupDragAndClick(bubbleView!!, lp) { setExpanded(true) }
-        setupDrag(root.findViewById(R.id.overlay_header), lp, snapOnRelease = false)
-        root.findViewById<View>(R.id.overlay_collapse).setOnClickListener { setExpanded(false) }
+        setupDragAndClick(bubbleView!!, lp) { setExpanded(true) }//给悬浮球绑“拖动 + 点击
+        setupDrag(root.findViewById(R.id.overlay_header), lp, snapOnRelease = false)//按住头部可拖动整个面板 //snapOnRelease = false 表示松手不吸附边缘
+        root.findViewById<View>(R.id.overlay_collapse).setOnClickListener { setExpanded(false) } //收起折叠面板
+        //点外部收起面板 //actionMasked：取事件的动作掩码，比 action 更安全，能正确处理多点触控 //_ 是“不用的参数”占位符; event 是 MotionEvent，代表一次触摸事件 //event是由 Android 框架在事件发生时调用你的 lambda 时“传进来”的
         root.setOnTouchListener { _, event -> if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) { collapseOnOutsideTouch(); true } else false }
         logToggleButton?.setOnClickListener { setLogWindowVisible(!logWindowVisible) }
         pathingRow?.setOnClickListener {
             setExpanded(false)
-            if (routeRunning) expandStatusBar() else onPathingOpen?.invoke()
+            if (routeRunning) expandStatusBar() else onPathingOpen?.invoke() // 在跑 → 展开状态栏, 否则//invoke() 是函数类型的调用约定,f() 和 f.invoke() 等价
         }
         pathingStart?.setOnClickListener {
             if (routeRunning || readoutRunning) onPathingStop?.invoke()
@@ -256,6 +260,8 @@ class OverlayWindowController(
             else { captureInterrupted = false; settingsRepository.setScreenShareEnabled(true) }
         }
         switchEnabled?.contentDescription = "共享屏幕"
+        //switchEnabled这个开关变化时会触发监听函数
+        //checked 的值也不是你赋的，是开关控件根据用户操作算出来并传给你的，是变化后的新状态
         switchEnabled?.setOnCheckedChangeListener { _, checked ->
             if (!updatingUi) { captureInterrupted = false; settingsRepository.setScreenShareEnabled(checked)
                 BaiduAnalytics.event("screen_share_toggle", checked.toString()) }
@@ -269,7 +275,7 @@ class OverlayWindowController(
                     if (checked) InputAccessibilityService.ensureEnabled(themedContext, "请开启无障碍权限，才能模拟点击对话选项") }
             }
         }
-        rowAutoSkip?.setOnClickListener { if (!settingsRepository.get().screenShareEnabled) hintNeedShare() else switchAutoSkip?.toggle() }
+        rowAutoSkip?.setOnClickListener { if (!settingsRepository.get().screenShareEnabled) hintNeedShare() else switchAutoSkip?.toggle() } // toggle()——切换开关状态
         quickSkipChip?.setOnClickListener {
             val config = settingsRepository.get()
             if (!config.screenShareEnabled) hintNeedShare() else settingsRepository.setQuickSkipDialogueEnabled(!config.quickSkipDialogueEnabled)
@@ -279,18 +285,20 @@ class OverlayWindowController(
             settingsRepository.setAutoPickEnabled(checked); BaiduAnalytics.event("auto_pick_toggle", checked.toString())
             if (checked) InputAccessibilityService.ensureEnabled(themedContext, "请开启无障碍权限，才能模拟点击拾取")
         } }
-        OverlayUi.leadingIcon(quickSkipChip!!, R.drawable.ic_ui_fast_forward, size = 14)
+        OverlayUi.leadingIcon(quickSkipChip!!, R.drawable.ic_ui_fast_forward, size = 14) // 最终 quickSkipChip 左边出现一个 14dp、主题色、与文字间隔 4dp 的快进图标
         OverlayUi.leadingIcon(autoLaunchChip!!, R.drawable.ic_ui_autorenew, size = 14)
-        TooltipCompat.setTooltipText(quickSkipChip!!, "快速跳过：对话中点击屏幕下方继续")
+        TooltipCompat.setTooltipText(quickSkipChip!!, "快速跳过：对话中点击屏幕下方继续")//用户长按这个 Chip 时，会弹出提示
         TooltipCompat.setTooltipText(autoLaunchChip!!, "无原神时自动启动：启动助手时若未检测到原神则打开一次")
         listOf(R.id.overlay_collapse, R.id.overlay_log_toggle, R.id.overlay_exit, R.id.overlay_bilibili, R.id.overlay_pathing_start).forEach {
             root.findViewById<View>(it).let { button -> TooltipCompat.setTooltipText(button, button.contentDescription) }
         }
         rootView = root; params = lp
+        //在面板展开且尺寸变了时，把窗口拉回屏幕内
         root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             if (expanded && (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop)) clampToScreen(lp)
         }
         windowManager.addView(root, lp)
+        //SharedPreferences 是 Android 提供的轻量级键值对存储 //数据最终以 XML 文件形式存在应用私有目录 //可以用于重启后恢复
         val mode = prefs.getInt(KEY_STATUS_MODE, if (prefs.getBoolean(KEY_LOG_VISIBLE, false)) 2 else 0)
         logExpanded = mode == 2; setLogWindowVisible(mode != 0, persist = false)
         settingsRepository.addListener(settingsListener); startScreenWatch(); a11yWarningReady = false; registerA11yReceiver()
@@ -301,7 +309,7 @@ class OverlayWindowController(
 
     private fun hintNeedShare() {
         rootView?.findViewById<TextView>(R.id.overlay_auto_skip_hint)?.apply { text = "需先开启共享屏幕"; visibility = View.VISIBLE }
-        rootView?.findViewById<View>(R.id.overlay_row_enabled)?.apply {
+        rootView?.findViewById<View>(R.id.overlay_row_enabled)?.apply { //做一个“先变淡再恢复”的闪烁动画——像“闪一下”，用来提示用户“这一行的状态刚变了”
             animate().alpha(.35f).setDuration(160).withEndAction { animate().alpha(1f).setDuration(240).start() }.start()
         }
         resizePanel()
@@ -463,6 +471,7 @@ class OverlayWindowController(
         setExpanded(false)
     }
 
+    //会返回GenshinLaunchResult
     private fun launchGenshinFromButton() {
         when (genshinLauncher.launch()) {
             is GenshinLaunchResult.Started -> setExpanded(false)
@@ -701,6 +710,7 @@ class OverlayWindowController(
         refreshStatus()
     } }
 
+    //mainHandler 是一个绑定主线程（UI 线程）的 Handler //post { ... } 把花括号里的代码投递到主线程消息队列，稍后由主线程执行
     fun showCaptureInterrupted() { mainHandler.post { captureInterrupted = true; refreshStatus() } }
 
     fun expandStatusBar() {
@@ -1155,6 +1165,7 @@ class OverlayWindowController(
         clampToScreen(lp)
     }
 
+    //把悬浮窗的位置限制在屏幕（或安全区域）内，防止窗口跑到屏幕外
     private fun clampToScreen(lp: WindowManager.LayoutParams) {
         val view = rootView ?: return
         val screen = screenSize()

@@ -37,7 +37,7 @@ data class GameUiGeometry(
 
 /** 仅保留当前共享会话的标定，不持久化到另一台手机。发布不可变快照供识别与输入线程共用。 */
 object GameUiCalibration {
-    @Volatile var current: GameUiGeometry? = null
+    @Volatile var current: GameUiGeometry? = null //@Volatile：保证多线程可见性
         internal set
 
     fun clear() { current = null }

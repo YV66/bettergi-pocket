@@ -42,6 +42,8 @@ import com.bettergi.pocket.settings.TriggerSettingsRepository
 import com.bettergi.pocket.trigger.TriggerEngine
 
 class TriggerForegroundService : Service() {
+    //var：可变属性，可以重新赋值。
+    //lateinit：告诉编译器“我暂时不初始化，但保证在第一次使用前会赋值，别在声明处强制我赋初值”。
     private lateinit var settingsRepository: TriggerSettingsRepository
     private lateinit var captureController: ScreenCaptureController
     private lateinit var overlayController: OverlayWindowController
@@ -75,7 +77,7 @@ class TriggerForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        settingsRepository = TriggerSettingsRepository(applicationContext)
+        settingsRepository = TriggerSettingsRepository(applicationContext) // applicationContext 从父类继承，整个应用的全局 Context
         captureController = ScreenCaptureController(applicationContext) {
             if (settingsRepository.get().screenShareEnabled) {
                 settingsRepository.setScreenShareEnabled(false)
@@ -183,7 +185,7 @@ class TriggerForegroundService : Service() {
                 startInForeground(sharing = captureController.isRunning())
                 overlayController.show()
                 refreshPathingPanel()
-                InputAccessibilityService.promptIfDisconnected(applicationContext)
+                InputAccessibilityService.promptIfDisconnected(applicationContext) //断连后延迟提示/恢复
             }
             ACTION_PATHING_ROUTE -> refreshPathingPanel()
             ACTION_DEBUG_READOUT -> if (BuildConfig.DEBUG && BuildConfig.PATHING_ENABLED) {
@@ -326,7 +328,7 @@ class TriggerForegroundService : Service() {
                 } else {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
                 }
-            startForeground(NOTIFICATION_ID, notification, serviceType)
+            startForeground(NOTIFICATION_ID, notification, serviceType)//把一个普通后台服务“升级”为前台服务，并在通知栏挂一条常驻通知//服务被标记为“前台”，系统不会轻易杀它
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
@@ -345,9 +347,9 @@ class TriggerForegroundService : Service() {
             Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle("更好的原神")
                 .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher)//通知栏小图标。必须设置，否则通知不显示
                 .setContentIntent(pendingIntent)
-                .setOngoing(true)
+                .setOngoing(true)//常驻通知：用户不能左右滑动清除。前台服务的通知必须这样，表示“服务正在运行”
                 .build()
         } else {
             @Suppress("DEPRECATION")
@@ -427,7 +429,7 @@ class TriggerForegroundService : Service() {
         manager.createNotificationChannel(channel)
     }
 
-    companion object {
+    companion object {//static
         const val ACTION_START = "com.bettergi.pocket.action.START"
         const val ACTION_STOP = "com.bettergi.pocket.action.STOP"
         const val ACTION_CAPTURE_RESULT = "com.bettergi.pocket.action.CAPTURE_RESULT"

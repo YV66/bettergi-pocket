@@ -19,20 +19,20 @@ import kotlin.math.abs
 
 object MatOps {
     fun copyRgbaImage(image: Image, dest: ByteArray) {
-        val plane = image.planes.firstOrNull() ?: return
+        val plane = image.planes.firstOrNull() ?: return // 取第一个平面， Image 可能有多个平面（如 YUV 有 Y/U/V 三个），但 RGBA 格式通常只有一个平面
         val width = image.width
         val height = image.height
-        val pixelStride = plane.pixelStride
-        val rowStride = plane.rowStride
-        val rowBytes = width * pixelStride
+        val pixelStride = plane.pixelStride //像素步长
+        val rowStride = plane.rowStride //行步长
+        val rowBytes = width * pixelStride // 一行实际像素数据的字节数
         require(dest.size >= height * rowBytes) { "RGBA buffer too small" }
-        val buffer = plane.buffer.duplicate()
-        if (rowStride == rowBytes) {
+        val buffer = plane.buffer.duplicate() // 复制 ByteBuffer // duplicate() 创建一个共享同一块数据、但 position/limit/order 独立的新 ByteBuffer，操作它不影响原 buffer，也不影响 Image 的状态
+        if (rowStride == rowBytes) { // 每行没有 padding（行步长等于实际数据长度），说明像素数据是连续紧凑的，可以直接一次性读 height * rowBytes 字节到 dest
             buffer.get(dest, 0, height * rowBytes)
             return
         }
         var destOffset = 0
-        for (row in 0 until height) {
+        for (row in 0 until height) { // 有 padding，逐行拷贝
             buffer.position(row * rowStride)
             buffer.get(dest, destOffset, rowBytes)
             destOffset += rowBytes

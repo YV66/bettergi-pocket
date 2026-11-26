@@ -10,7 +10,7 @@ class BilibiliSpaceOpener(private val context: Context) {
     fun open() {
         val intent = resolveIntent() ?: return
         try {
-            context.startActivity(intent)
+            context.startActivity(intent) //用 Intent 启动 Activity
         } catch (_: Throwable) {
             try {
                 context.startActivity(viewIntent(Uri.parse(BilibiliSpace.WEB_URL), packageName = null))
@@ -19,7 +19,7 @@ class BilibiliSpaceOpener(private val context: Context) {
         }
     }
 
-    private fun resolveIntent(): Intent? {
+    private fun resolveIntent(): Intent? {//返回的 Intent 是viewIntent(...)构造的
         val pm = context.packageManager
         val appUri = Uri.parse(BilibiliSpace.APP_URI)
         val webUri = Uri.parse(BilibiliSpace.WEB_URL)

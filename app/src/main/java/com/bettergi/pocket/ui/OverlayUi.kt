@@ -19,11 +19,12 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 
 /** 悬浮窗统一主题及紧凑控件；控件高度均为下限，以适应字体缩放。 */
 object OverlayUi {
-    fun context(base: Context): Context {
+    fun context(base: Context): Context {//返回 Context：一个新的、包装过的 Context
         val config = Configuration(base.resources.configuration).apply {
-            fontScale = fontScale.coerceAtMost(1.3f)
+            fontScale = fontScale.coerceAtMost(1.3f)//限制字体缩放
         }
-        return ContextThemeWrapper(base.createConfigurationContext(config), R.style.Theme_BetterGIPocket_Overlay)
+        //套主题并返回
+        return ContextThemeWrapper(base.createConfigurationContext(config), R.style.Theme_BetterGIPocket_Overlay)//base.createConfigurationContext：配置生效的新 Context
     }
     fun text(c: Context, value: String = "", size: Float = 13f, color: Int = R.color.pocket_text,
              bold: Boolean = false) = TextView(c).apply {
@@ -86,10 +87,10 @@ object OverlayUi {
     }
     fun scroll(c: Context, child: View) = ScrollView(c).apply { isFillViewport = false; addView(child); clipToPadding = false }
     fun leadingIcon(view: TextView, resource: Int, color: Int = R.color.pocket_primary, size: Int = 16) {
-        val drawable = ContextCompat.getDrawable(view.context, resource)!!.mutate()
+        val drawable = ContextCompat.getDrawable(view.context, resource)!!.mutate()//mutate() 让它拥有独立的 constant state，后面 setTint 着色时不会影响其他使用同一资源的 View。不加 mutate()，给一个图标着色可能把别处的同资源图标也染色。
         androidx.core.graphics.drawable.DrawableCompat.setTint(drawable, ContextCompat.getColor(view.context, color))
-        drawable.setBounds(0, 0, view.dp(size), view.dp(size))
-        view.setCompoundDrawablesRelative(drawable, null, null, null); view.compoundDrawablePadding = view.dp(4)
+        drawable.setBounds(0, 0, view.dp(size), view.dp(size))//设置 drawable 的绘制边界。作为 CompoundDrawable 使用时，必须设置 bounds，否则图标可能不显示或尺寸为 0 //图标按 dp 定义尺寸，适配不同屏幕密度
+        view.setCompoundDrawablesRelative(drawable, null, null, null); view.compoundDrawablePadding = view.dp(4) //设置图标和文字之间的间距为 4dp
     }
 }
 

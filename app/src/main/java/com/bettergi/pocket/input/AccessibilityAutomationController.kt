@@ -13,7 +13,7 @@ class AccessibilityAutomationController(
 
     override fun execute(action: AutomationAction) {
         when (action) {
-            is ClickAction -> executeClick(action)
+            is ClickAction -> executeClick(action) //is 是类型检查，判断 action 是不是 ClickAction 类型
         }
     }
 

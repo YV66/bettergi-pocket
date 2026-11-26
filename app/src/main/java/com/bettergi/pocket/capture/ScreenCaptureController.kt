@@ -102,7 +102,7 @@ class ScreenCaptureController(
     fun discardLatestImages() {
         synchronized(lock) {
             try {
-                imageReader?.acquireLatestImage()?.close()
+                imageReader?.acquireLatestImage()?.close() //.acquireLatestImage() 获取最新的一帧 Image，并丢弃队列中更旧的帧。//.close() 关闭取到的 Image，释放它占用的缓冲区
             } catch (_: Throwable) {
             }
         }
@@ -125,13 +125,13 @@ class ScreenCaptureController(
             try {
                 val width = image.width
                 val height = image.height
-                val packed = rgbaScratch(width * height * 4)
-                MatOps.copyRgbaImage(image, packed)
+                val packed = rgbaScratch(width * height * 4) // RGBA 每个像素占 4 个字节
+                MatOps.copyRgbaImage(image, packed) //图像转成RGBA字节数组
                 cachedWidth = width
                 cachedHeight = height
                 hasCachedFrame = true
-                lastFrameElapsedMs = SystemClock.elapsedRealtime()
-                val bgr = MatOps.rgbaToBgr(width, height, packed)
+                lastFrameElapsedMs = SystemClock.elapsedRealtime() // 现在距离开机过了多少毫秒
+                val bgr = MatOps.rgbaToBgr(width, height, packed) //RGBA字节数组转Mat
                 if (lastFrameElapsedMs - calibrationElapsedMs >= 3000L) {
                     calibrationElapsedMs = lastFrameElapsedMs
                     try {
@@ -333,6 +333,7 @@ class ScreenCaptureController(
         GameUiCalibration.clear()
     }
 
+    //检查当前缓冲区大小是否和需要的大小一致，一致 → 直接复用；不一致 → 重新分配 // 避免每帧都分配新数组
     private fun rgbaScratch(size: Int): ByteArray {
         if (rgbaScratch.size != size) {
             rgbaScratch = ByteArray(size)

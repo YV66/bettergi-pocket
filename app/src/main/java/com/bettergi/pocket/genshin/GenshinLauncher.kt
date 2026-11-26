@@ -61,8 +61,9 @@ class GenshinLauncher(private val context: Context) {
     }
 }
 
-sealed class GenshinLaunchResult {
-    data class Started(val packageName: String) : GenshinLaunchResult()
+sealed class GenshinLaunchResult {//密封类
+    //data class：数据类，自动生成 equals、hashCode、toString、copy 等
+    data class Started(val packageName: String) : GenshinLaunchResult() // 携带一个 packageName: String：启动成功时，记录启动的是哪个包名（原神可能有国服、国际服等不同包名）
     data object NotInstalled : GenshinLaunchResult()
     data class Failed(val packageName: String?) : GenshinLaunchResult()
 }
